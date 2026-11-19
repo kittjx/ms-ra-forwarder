@@ -4,10 +4,11 @@ FROM node:trixie-slim AS base
 # 设置工作目录
 WORKDIR /app
 
+# 启用 Corepack 以使用 package.json 中固定的 Yarn 4
+RUN npm install -g corepack && corepack enable
 # 安装依赖（production + dev）
-COPY package.json package-lock.json ./
-# 使用 ci 保证锁文件一致性
-RUN npm ci
+COPY package.json yarn.lock .yarnrc.yml ./
+RUN yarn install --immutable
 
 # ─── 构建阶段：Next.js 构建 ───────────────────────────────────────
 FROM base AS builder
@@ -18,7 +19,7 @@ COPY . .
 RUN cat package.json
 
 # 执行 Next.js 构建（确保 package.json 中有 "build": "next build"）
-RUN npm run build
+RUN yarn build
 
 # ─── 运行阶段：Standalone 输出 ────────────────────────────────────
 FROM node:trixie-slim AS runner
